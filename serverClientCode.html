@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="UTF-8">
+  <title>Steam How-To Guide</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/bootstrap.css">
+  <link rel="stylesheet" href="css/bootstrap-responsive.css">
+  <link rel="stylesheet" href="js/fancybox/jquery.fancybox-1.3.4.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="changes.css">
+  <link href="http://fonts.googleapis.com/css?family=Lato:700" rel="stylesheet" type="text/css">
+  <script src="js/modernizr-2.5.3.min.js"></script>
+ </head>
+ <body id="top-section" data-spy="scroll" data-target="#topnav"  data-offset="70">
+	<div class="container">
+	  <header>
+		<!-- navbar -->
+		<div id="topnav" class="navbar navbar-fixed-top">
+		  <div class="navbar-inner">
+			<div class="container">
+			  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+			  <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span> </a>
+			  <!-- Collapse - Everything you want hidden at 940px or less, place within here -->
+			  <div class="nav-collapse">
+				<!-- Main nav -->
+				<ul  class="nav">
+				  <li><a href="index.html">Home</a></li>
+				  <li><a href="gettingStarted.html">Getting Started</a></li>
+				  <li class="active"><a href="serverClientCode.html">Server and Client Side Code</a></li>
+				  <li><a href="data.html">Making Use of the Data</a></li>
+				  <li><a href="implementation.html">API Implementation</a></li>
+				</ul>
+				<!-- ENDS main nav -->
+				
+			  </div>
+			  <!-- ENDS Collapse -->
+			</div>
+		  </div>
+		</div>
+		<!-- ENDS navbar -->
+	  </header>
+	  <!-- MAIN -->
+	   <div id="main" role="main">
+    <!-- Hero -->
+    <div class="hero-unit">
+      <h1>How-To Guide: Steam Web API</h1>
+      <p>By Josh Erickson</p>
+    </div>
+    <!-- ENDS hero -->
+	
+	<!-- info -->
+    <section id="info-section" class="information" >
+      <div  class="page-header"  id= "topic">
+        <h1>Server Code</h1>
+      </div>
+		<p>In this section, we'll be discussing how to set up the server that the client side will use as a proxy to talk to the Steam Web API. I used Node.js
+		to set up the backend part of my API calls, so the code I show will be tailored to that approach.</p>
+		<p>The basic code for this will look like the code snippet below:</p>
+		<pre class ="codeSample">
+			var express = require('express');
+			var request = require('request');
+			var key = (Your Key);
+
+			var app = express();
+			var bodyParser = require('body-parser');
+
+			app.use(bodyParser.json());
+
+			app.set('port', 3000);
+
+			app.use(function (req, res, next) {
+				// Website sending requests
+				res.setHeader('Access-Control-Allow-Origin', 'http://web.engr.oregonstate.edu');
+				// Request method that you are allowing (we are using GET)
+				res.setHeader('Access-Control-Allow-Methods', 'GET');
+				// Request header types that are allowed
+				res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+				// The following is set to false since we won't be addressing cookies and sessions
+				res.setHeader('Access-Control-Allow-Credentials', false);
+				// Proceed to the next layer of middleware
+				next();
+			});	
+
+			function getUserData(req) {
+			var context = {};
+			context.method = req.method;
+			context.queryParams = [];
+			
+			for (var prop in req.query) {
+			 context.queryParams.push({'name':prop,'value':req.query[prop]});
+			}
+			return context;
+			}
+			
+			app.get('/',function(req,res){
+			  var getUserInput = getUserData(req);
+			  var url = buildURL(getUserInput);
+			  request(url, function (error, response, body) {
+					if (!error && response.statusCode === 200) {
+						//console.log(body); 
+						res.send(body); 
+				}
+				});
+			});
+
+				
+
+
+			app.listen(app.get('port'), function(){
+			  console.log('Express started on http://localhost:' + app.get('port') + '; press Ctrl-C to terminate.');
+			});
+		</pre>
+		<div id="serverCodeSnippet">I'll go over each piece in this code snippet in more detail below.</div>
+	  <div  class="page-header">
+        <h1><small>Loading the required modules</small></h1>
+      </div>
+      <!-- tab content -->
+      <div class="tab-content">
+        <!-- Summary -->
+        <div class="summary-section tab-pane active" id="summary">
+         <pre class ="codeSample">
+			var express = require('express');
+			var request = require('request');
+			var key = (Your Key);
+
+			var app = express();
+			var bodyParser = require('body-parser');
+			
+			app.set('port', 3000);
+		  </pre>
+		  
+		  <p>Here we are telling the server what modules it needs to load, these being express, request, and body-parser. Let's go over 
+			these modules and why we're loading them.<br><br>Express- Express.js is a Node.js web application server framework, designed for 
+			building single-page, multi-page, and hybrid web applications. Since we are building a server here to act as a proxy, having 
+			a framework to build it on makes that task a lot easier. Express gives us that.<br><br>Request- Request is designed to be the 
+			simplest way possible to make http calls. It supports HTTPS and follows redirects by default. Since we are going to be making 
+			http calls within these API calls, we need some way to do that. The request module makes this simple to do.<br><br>Body-Parser- 
+			Body Parser essentially extracts the body portion of an incoming request stream, exposes it on req.body, and gives us something 
+			that's easier to interact with. You are able to specify how you want the incoming stream to be parsed, we will want this to be 
+			parsed as JSON.<br><br>var key = (Your Key); This line here is simply storing your personal key in a variable so that you can add it 
+			to any API calls made from the server. Replace the (Your Key) part with your personal key.<br><br>app.set('port', 3000);- Here we are 
+			setting the port number that we will be using. Just make sure you're not using the port that you put here for something else.
+			
+			<div  class="page-header">
+				<h1><small>Setting the CORS headers</small></h1>
+			</div>
+			<pre class ="codeSample">
+			app.use(function (req, res, next) {
+				// Website sending requests
+				res.setHeader('Access-Control-Allow-Origin', 'http://web.engr.oregonstate.edu');
+				// Request method that you are allowing (we are using GET)
+				res.setHeader('Access-Control-Allow-Methods', 'GET');
+				// Request header types that are allowed
+				res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+				// The following is set to false since we won't be addressing cookies and sessions
+				res.setHeader('Access-Control-Allow-Credentials', false);
+				// Proceed to the next layer of middleware
+				next();
+			});	
+		  </pre>
+          <p>
+			As discussed before, setting the CORS headers allows us to specify where an API call is being made from, which then in turn allows
+			the accepting server to decide whether or not it should allow that request. 
+			<br><br>
+			res.setHeader('Access-Control-Allow-Origin', 'http://web.engr.oregonstate.edu');- This line lets the accepting server know where the request is 
+			coming from. For my server, the site that is sending requests is the base URL of this website. Yours may be something else, adjust this accordingly.
+			<br><br>
+			The next few headers let the server know what type of request method you'll be using, GET or POST, the header types you'll be using, and whether or not
+			we'll be using cookies or sessions in any way.
+		  </p>
+		  
+			<div  class="page-header">
+				<h1><small>Set up the GET request route</small></h1>
+			</div>
+			<pre class ="codeSample">
+			app.get('/',function(req,res){
+			  var getUserInput = getUserData(req);
+			  var url = buildURL(getUserInput);
+			  request(url, function (error, response, body) {
+					if (!error && response.statusCode === 200) {
+						//console.log(body); 
+						res.send(body); 
+				}
+				});
+			});
+		  </pre>
+			<p>app.get('/',function(req,res){ prepares the server to receive a GET request with '/' being the route directory. 
+			<br><br>
+			Once the request is received by the server, we use the getUserData function to organize the parameters received into an object.</p>
+			<pre class ="codeSample">
+			function getUserData(req) {
+				var context = {};
+				context.method = req.method;
+				context.queryParams = [];
+
+				for (var prop in req.query) {
+				context.queryParams.push({'name':prop,'value':req.query[prop]});
+				}
+				return context;
+			}
+		  </pre>
+			<p>
+			This function will accept the request sent by the client and push each parameter included in that request into an object. This object can then be used to build the URL
+			to make the Steam API request. 
+			<br><br>
+			I omitted the buildURL function because 
+			it will look differently depending on the parameters that you decide to send from the client. For the API call that I make later in this guide, I send two 
+			parameters from the client, these being beforeKey and afterKey. These parameters hold what the API URL request string should contain before the API key is 
+			added and after the API key is added. So my buildURL function here could essentially look like var URL = beforeKey + key + afterKey. The URL then has all 
+			the parameters that it needs to make a request from the Steam API, so it gets sent off. 
+			<br><br>
+			if (!error && response.statusCode === 200) determines if the response that was received from Steam is an error code. If no error has been received, then the 
+			URL was built correctly and Steam didn't have any problems with the CORS headers or the site making the request. 
+			<br><br>
+			Once we have determined that we have received no error codes, we use res.send(body); to send the response back to the client that sent the GET request.
+			</p>
+			
+			<div  class="page-header">
+				<h1><small>Instructing Express to listen on port</small></h1>
+			</div>
+			
+			<pre class ="codeSample">
+			app.listen(app.get('port'), function(){
+			  console.log('Express started on http://localhost:' + app.get('port') + '; press Ctrl-C to terminate.');
+			});
+		  </pre>
+		  <p>
+			This bit of code simply tells express to listen on whatever port you specified earlier for connections.<br><br>
+		  </p>
+		  
+		  
+		  <!-- CLIENT CODE PORTION -->
+		  
+		 <div  class="page-header"  id= "topic">
+			<h1>Client Code</h1>
+		</div>
+		
+			<p>
+				In this section, we'll be discussing how to send an AJAX request to the server that was just set up.<br>The basic code 
+				for this will look like the code snippet below:			
+			</p>
+			<pre class ="codeSample">
+				var req = new XMLHttpRequest();
+				var url = (Base Server URL here);
+				//Adding on server parameters here
+				url = url + 'b4key=ISteamUser%2FGetPlayerSummaries%2Fv0002%2F' + '&afterKey=%26steamids%3D' + ID;
+				req.open("GET", url, true);
+				req.addEventListener('load',function(){
+				if(req.status >= 200 && req.status < 400){
+				var response = JSON.parse(req.responseText);
+				console.log(response);
+				} else {
+				console.log("Error in network request: " + req.statusText);
+				}
+				});
+				req.send(null);
+				event.preventDefault();
+		    </pre>
+				<div id = "clientCodeSnip">
+				<p>I'll go over each piece in this code snippet in more detail below.</p>
+				</div>
+			 <div  class="page-header">
+				<h1><small>Open an AJAX request</small></h1>
+			</div>
+			
+			<pre class ="codeSample">
+				var req = new XMLHttpRequest();
+				var url = (Base Server URL here);
+			</pre>
+						
+			<p>
+				Opening an AJAX request using XMLHttpRequest is very easy. All you need to do is create an instance of the object, open a URL, 
+				and send the request. Here we have created the instance and an url variable, which we need to fill in with the actual url and 
+				append the parameters that we want to send along with the request.
+				<br>
+				Here:
+			</p>
+			
+			<pre class ="codeSample">
+				req.open("GET", url, true);
+			</pre>
+			
+			<p>
+				We are opening a request with the server that we specify using the url variable that we have built and appended parameters to prior to this. 
+				We specify that the request is of type GET and specify true to indicate that this request should be handled asynchronously. 
+			</p>
+			
+			<pre class ="codeSample">
+				req.addEventListener('load',function(){
+				if(req.status >= 200 && req.status < 400){
+				var response = JSON.parse(req.responseText);
+				console.log(response);
+				} else {
+				console.log("Error in network request: " + req.statusText);
+				}
+				});
+			</pre>
+			
+			<p>
+				Here we are adding an event listener and assigning it to the request's 'load' event. This allows the rest of the page to continue doing 
+				work until the request has been responded to. Once it has been responded to, this code checks that the request status is within an acceptable 
+				range (200-400), and if it is, it parses the response. You are then free to use that response object however you like on your page. In this code 
+				snippet, we're simply logging the response to the console, but using the data to display specific results on screen to the user is easily doable. 
+				This will be shown on the next page. 
+			</p>
+			
+			<pre class ="codeSample">
+				req.send(null);
+				event.preventDefault();
+			</pre>
+			
+			<p>
+				req.send actually initiates the request that we built. event.preventDefault prevents the page from reloading in this example. 
+			</p>
+				
+			<pre class ="codeSample">	
+			url = url + 'b4key=ISteamUser%2FGetPlayerSummaries%2Fv0002%2F' + '&afterKey=%26steamids%3D' + ID;	
+			</pre>
+			
+			<p>
+			I just wanted to point out one last thing with how I built the URL on the client side. As I mentioned before, I simply sent the string that should go 
+			before the API key is added on the server side, and a string with what should be added after the API key on the server side. If you'll look at the URL 
+			I'm building however, it looks a little weird. In this example, I'm building the URL for GetPlayerSummaries. Looking at the method for this provided by 
+			Steam, the first part should be ISteamUser/GetPlayerSummaries/v0002/. You've probably noticed that I've omitted any special characters when building 
+			my URL and replaced them with %2F, %26, and %3D. This is because I want those characters to remain intact when the API request URL is built on the server. 
+			If we send special characters like '/' or '&' or '=' as parameters, the server will interpret those as having special meaning and won't retain them in the 
+			string as you intended. So we need to encode them if we want them to passed a string parameter intended to build the URL on the server. In this case, %2F is 
+			a '/', %3D is '=', and %26 is '&'. 
+			</p>
+        </div>
+        <!-- ENDS Summary -->
+      </div>
+      <!-- ENDS tab content -->
+    </section>
+    <!-- ENDS info -->
+	<div  class="page-header"></div>
+	<div class = "nextHolder">
+		<a href = "data.html">
+			<div class="next">
+				<strong>Next &#8594;</strong>
+			</div>
+		</a>
+	</div>
+	
+	</div>
+  
+<script src="js/jquery-1.7.1.min.js"></script>
+<!-- scripts concatenated and minified via build script -->
+<script src="js/plugins.js"></script>
+<script src="js/bootstrap-dropdown.js"></script>
+<script src="js/bootstrap-scrollspy.js"></script>
+<script src="js/bootstrap-tab.js"></script>
+<script src="js/bootstrap-collapse.js"></script>
+<script src="js/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+<script src="js/custom.js"></script>
+ </body>
+</html>
